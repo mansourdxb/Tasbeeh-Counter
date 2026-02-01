@@ -2,6 +2,7 @@ export interface Preset {
   id: string;
   name: string;
   arabicName?: string;
+  text?: string;          // ✅ add this
   target: number;
   count: number;
   color: string;

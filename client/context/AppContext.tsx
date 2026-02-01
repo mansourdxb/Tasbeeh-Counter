@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
@@ -32,7 +39,9 @@ interface AppContextType {
   reset: () => void;
   setCurrentPreset: (id: string) => void;
   updateSettings: (settings: Partial<AppSettings>) => void;
-  addPreset: (preset: Omit<Preset, "id" | "createdAt" | "count" | "isBuiltIn">) => void;
+  addPreset: (
+    preset: Omit<Preset, "id" | "createdAt" | "count" | "isBuiltIn">
+  ) => void;
   updatePreset: (id: string, updates: Partial<Preset>) => void;
   deletePreset: (id: string) => void;
 }
@@ -51,74 +60,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const currentPreset = presets.find((p) => p.id === currentPresetId) || null;
 
-  const getTodayDateString = () => {
-    return new Date().toISOString().split("T")[0];
-  };
+  // ✅ Safe fallback if current preset was deleted / missing
+  const resolvedPreset: Preset | null = currentPreset ?? presets[0] ?? null;
+
+  const getTodayDateString = () => new Date().toISOString().split("T")[0];
 
   const todayLog = dailyLogs.find((log) => log.date === getTodayDateString());
   const todayTotal = todayLog?.total || 0;
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (settings.keepScreenOn) {
-      activateKeepAwakeAsync();
-    } else {
-      deactivateKeepAwake();
-    }
-    return () => {
-      deactivateKeepAwake();
-    };
-  }, [settings.keepScreenOn]);
-
-  const loadData = async () => {
-    try {
-      const [presetsData, currentPresetData, dailyLogsData, settingsData, allTimeTotalData] =
-        await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEYS.PRESETS),
-          AsyncStorage.getItem(STORAGE_KEYS.CURRENT_PRESET_ID),
-          AsyncStorage.getItem(STORAGE_KEYS.DAILY_LOGS),
-          AsyncStorage.getItem(STORAGE_KEYS.SETTINGS),
-          AsyncStorage.getItem(STORAGE_KEYS.ALL_TIME_TOTAL),
-        ]);
-
-      if (presetsData) {
-        const parsed = JSON.parse(presetsData);
-        const merged = DEFAULT_PRESETS.map((defaultPreset) => {
-          const saved = parsed.find((p: Preset) => p.id === defaultPreset.id);
-          return saved ? { ...defaultPreset, count: saved.count } : defaultPreset;
-        });
-        const customPresets = parsed.filter((p: Preset) => !p.isBuiltIn);
-        setPresets([...merged, ...customPresets]);
-      }
-
-      if (currentPresetData) {
-        setCurrentPresetId(currentPresetData);
-      }
-
-      if (dailyLogsData) {
-        setDailyLogs(JSON.parse(dailyLogsData));
-      }
-
-      if (settingsData) {
-        setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(settingsData) });
-      }
-
-      if (allTimeTotalData) {
-        setAllTimeTotal(parseInt(allTimeTotalData, 10));
-      }
-    } catch (error) {
-      console.error("Error loading data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const savePresets = useCallback(async (newPresets: Preset[]) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.PRESETS, JSON.stringify(newPresets));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.PRESETS,
+        JSON.stringify(newPresets)
+      );
     } catch (error) {
       console.error("Error saving presets:", error);
     }
@@ -126,7 +81,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const saveDailyLogs = useCallback(async (newLogs: DailyLog[]) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.DAILY_LOGS, JSON.stringify(newLogs));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.DAILY_LOGS,
+        JSON.stringify(newLogs)
+      );
     } catch (error) {
       console.error("Error saving daily logs:", error);
     }
@@ -134,7 +92,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const saveSettings = useCallback(async (newSettings: AppSettings) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.SETTINGS,
+        JSON.stringify(newSettings)
+      );
     } catch (error) {
       console.error("Error saving settings:", error);
     }
@@ -142,7 +103,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const saveAllTimeTotal = useCallback(async (total: number) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.ALL_TIME_TOTAL, total.toString());
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.ALL_TIME_TOTAL,
+        total.toString()
+      );
     } catch (error) {
       console.error("Error saving all time total:", error);
     }
@@ -156,31 +120,90 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const loadData = useCallback(async () => {
+    try {
+      const [
+        presetsData,
+        currentPresetData,
+        dailyLogsData,
+        settingsData,
+        allTimeTotalData,
+      ] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.PRESETS),
+        AsyncStorage.getItem(STORAGE_KEYS.CURRENT_PRESET_ID),
+        AsyncStorage.getItem(STORAGE_KEYS.DAILY_LOGS),
+        AsyncStorage.getItem(STORAGE_KEYS.SETTINGS),
+        AsyncStorage.getItem(STORAGE_KEYS.ALL_TIME_TOTAL),
+      ]);
+
+      if (presetsData) {
+        const parsed: Preset[] = JSON.parse(presetsData);
+
+        // Merge built-ins (keep default fields, but preserve saved counts)
+        const merged = DEFAULT_PRESETS.map((defaultPreset) => {
+          const saved = parsed.find((p) => p.id === defaultPreset.id);
+          return saved ? { ...defaultPreset, count: saved.count } : defaultPreset;
+        });
+
+        const customPresets = parsed.filter((p) => !p.isBuiltIn);
+        setPresets([...merged, ...customPresets]);
+      }
+
+      if (currentPresetData) setCurrentPresetId(currentPresetData);
+      if (dailyLogsData) setDailyLogs(JSON.parse(dailyLogsData));
+      if (settingsData) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(settingsData) });
+      if (allTimeTotalData) setAllTimeTotal(parseInt(allTimeTotalData, 10));
+    } catch (error) {
+      console.error("Error loading data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    if (settings.keepScreenOn) activateKeepAwakeAsync();
+    else deactivateKeepAwake();
+
+    return () => {
+      deactivateKeepAwake();
+    };
+  }, [settings.keepScreenOn]);
+
+  // ✅ Auto-fix currentPresetId if it points to a deleted preset
+  useEffect(() => {
+    if (!currentPreset && presets.length > 0) {
+      const nextId = presets[0].id;
+      setCurrentPresetId(nextId);
+      saveCurrentPresetId(nextId);
+    }
+  }, [currentPreset, presets, saveCurrentPresetId]);
+
   const increment = useCallback(() => {
-    if (!currentPreset) return;
+    if (!resolvedPreset) return;
 
     if (settings.hapticEnabled) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
-    previousCountRef.current = currentPreset.count;
+    previousCountRef.current = resolvedPreset.count;
 
     const newPresets = presets.map((p) =>
-      p.id === currentPreset.id ? { ...p, count: p.count + 1 } : p
+      p.id === resolvedPreset.id ? { ...p, count: p.count + 1 } : p
     );
     setPresets(newPresets);
     savePresets(newPresets);
 
-    setLastCount(currentPreset.count + 1);
+    setLastCount(resolvedPreset.count + 1);
 
     const today = getTodayDateString();
     const newLogs = [...dailyLogs];
-    const existingLogIndex = newLogs.findIndex((log) => log.date === today);
-    if (existingLogIndex >= 0) {
-      newLogs[existingLogIndex] = {
-        ...newLogs[existingLogIndex],
-        total: newLogs[existingLogIndex].total + 1,
-      };
+    const idx = newLogs.findIndex((log) => log.date === today);
+    if (idx >= 0) {
+      newLogs[idx] = { ...newLogs[idx], total: newLogs[idx].total + 1 };
     } else {
       newLogs.push({ date: today, total: 1 });
     }
@@ -191,25 +214,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setAllTimeTotal(newTotal);
     saveAllTimeTotal(newTotal);
 
-    if (currentPreset.count + 1 === currentPreset.target && settings.hapticEnabled) {
+    if (resolvedPreset.count + 1 === resolvedPreset.target && settings.hapticEnabled) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-  }, [currentPreset, presets, dailyLogs, allTimeTotal, settings.hapticEnabled, savePresets, saveDailyLogs, saveAllTimeTotal]);
+  }, [
+    resolvedPreset,
+    presets,
+    dailyLogs,
+    allTimeTotal,
+    settings.hapticEnabled,
+    savePresets,
+    saveDailyLogs,
+    saveAllTimeTotal,
+  ]);
 
   const undo = useCallback(() => {
-    if (!currentPreset || previousCountRef.current === null || currentPreset.count === 0) return;
+    if (!resolvedPreset || previousCountRef.current === null || resolvedPreset.count === 0) return;
 
     if (settings.hapticEnabled) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
 
     const newPresets = presets.map((p) =>
-      p.id === currentPreset.id ? { ...p, count: Math.max(0, p.count - 1) } : p
+      p.id === resolvedPreset.id ? { ...p, count: Math.max(0, p.count - 1) } : p
     );
     setPresets(newPresets);
     savePresets(newPresets);
 
-    setLastCount(Math.max(0, currentPreset.count - 1));
+    setLastCount(Math.max(0, resolvedPreset.count - 1));
 
     const today = getTodayDateString();
     const newLogs = dailyLogs.map((log) =>
@@ -223,35 +255,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     saveAllTimeTotal(newTotal);
 
     previousCountRef.current = null;
-  }, [currentPreset, presets, dailyLogs, allTimeTotal, settings.hapticEnabled, savePresets, saveDailyLogs, saveAllTimeTotal]);
+  }, [
+    resolvedPreset,
+    presets,
+    dailyLogs,
+    allTimeTotal,
+    settings.hapticEnabled,
+    savePresets,
+    saveDailyLogs,
+    saveAllTimeTotal,
+  ]);
 
   const reset = useCallback(() => {
-    if (!currentPreset) return;
+    if (!resolvedPreset) return;
 
     if (settings.hapticEnabled) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
 
     const newPresets = presets.map((p) =>
-      p.id === currentPreset.id ? { ...p, count: 0 } : p
+      p.id === resolvedPreset.id ? { ...p, count: 0 } : p
     );
     setPresets(newPresets);
     savePresets(newPresets);
+
     setLastCount(0);
     previousCountRef.current = null;
-  }, [currentPreset, presets, settings.hapticEnabled, savePresets]);
+  }, [resolvedPreset, presets, settings.hapticEnabled, savePresets]);
 
-  const setCurrentPreset = useCallback((id: string) => {
-    setCurrentPresetId(id);
-    saveCurrentPresetId(id);
-    previousCountRef.current = null;
-  }, [saveCurrentPresetId]);
+  const setCurrentPreset = useCallback(
+    (id: string) => {
+      setCurrentPresetId(id);
+      saveCurrentPresetId(id);
+      previousCountRef.current = null;
+    },
+    [saveCurrentPresetId]
+  );
 
-  const updateSettings = useCallback((updates: Partial<AppSettings>) => {
-    const newSettings = { ...settings, ...updates };
-    setSettings(newSettings);
-    saveSettings(newSettings);
-  }, [settings, saveSettings]);
+  const updateSettings = useCallback(
+    (updates: Partial<AppSettings>) => {
+      const newSettings = { ...settings, ...updates };
+      setSettings(newSettings);
+      saveSettings(newSettings);
+    },
+    [settings, saveSettings]
+  );
 
   const addPreset = useCallback(
     (preset: Omit<Preset, "id" | "createdAt" | "count" | "isBuiltIn">) => {
@@ -271,9 +319,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updatePreset = useCallback(
     (id: string, updates: Partial<Preset>) => {
-      const newPresets = presets.map((p) =>
-        p.id === id ? { ...p, ...updates } : p
-      );
+      const newPresets = presets.map((p) => (p.id === id ? { ...p, ...updates } : p));
       setPresets(newPresets);
       savePresets(newPresets);
     },
@@ -289,18 +335,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setPresets(newPresets);
       savePresets(newPresets);
 
+      // ✅ If we deleted the selected preset, switch to the first remaining preset
       if (currentPresetId === id) {
-        setCurrentPreset(presets[0].id);
+        const nextId = newPresets[0]?.id;
+        if (nextId) {
+          setCurrentPresetId(nextId);
+          saveCurrentPresetId(nextId);
+        }
       }
     },
-    [presets, currentPresetId, savePresets, setCurrentPreset]
+    [presets, currentPresetId, savePresets, saveCurrentPresetId]
   );
 
   return (
     <AppContext.Provider
       value={{
         presets,
-        currentPreset,
+        // ✅ expose resolvedPreset so screens never get null after delete
+        currentPreset: resolvedPreset,
         settings,
         todayTotal,
         allTimeTotal,
