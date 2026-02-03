@@ -1,0 +1,19 @@
+StatTile({
+  icon,
+  value,
+  label,
+  outerColor,
+  innerColor,
+  valueColor,
+  labelColor,
+}: {
+  icon: string;
+  value: number;
+  label: string;
+  outerColor: string;
+  innerColor: string;
+  valueColor: string;
+  labelColor: string;
+}) {
+  return (
+    <View style={[styles.statTileOuter, { backgr

@@ -1,27 +1,48 @@
 {
   "expo": {
-    "name": "Tasbih",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0891b2"
+    }, 
+    "name": "المسبحة الإسلامية",
     "slug": "tasbih",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/icon.png",
     "scheme": "tasbih",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": {
+    "ios": 
+    {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tasbih.app"
+      "icon": "./assets/icon.png",
+      "bundleIdentifier": "com.mansour.tasbeehcounter",
+      "infoPlist": 
+      {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "نحتاج إلى موقعك لتحديد اتجاه القبلة بدقة."
+
+      }
     },
-    "android": {
-      "package": "com.tasbih.app",
-      "adaptiveIcon": {
-        "backgroundColor": "#F8F9FA",
+    "android": 
+    {
+      "package": "com.mansour.tasbeehcounter",
+      "icon": "./assets/icon.png",
+      "adaptiveIcon": 
+      {
+        "backgroundColor": "#0891b2",
         "foregroundImage": "./assets/images/icon.png"
       },
+       "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
-    "web": {
+    "web": 
+    {
       "output": "single",
       "favicon": "./assets/images/icon.png"
     },
@@ -29,11 +50,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#F8F9FA",
+          "backgroundColor": "#0891b2",
           "dark": {
+            "image": "./assets/images/splash.png",
             "backgroundColor": "#1A1D23"
           }
         }
@@ -43,6 +65,11 @@
     ],
     "experiments": {
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7a809db6-795e-44f0-8d25-8c1a16172261"
+      }
     }
   }
 }

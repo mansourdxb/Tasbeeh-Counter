@@ -1,0 +1,11 @@
+<ScrollView
+        style={{ width: contentWidth }}
+        contentContainerStyle={{ paddingBottom: tabBarHeight + 24 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.sheet, { backgroundColor: sheetBackground }]}>
+          <CountdownCard
+            title="رمضان"
+            subtitle="العد التنازلي لرمضان"
+            target={ramadanTarget}
+            colors={

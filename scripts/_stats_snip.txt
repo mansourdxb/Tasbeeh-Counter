@@ -1,0 +1,43 @@
+export default function StatsScreen() {
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const { colors, isDarkMode } = useTheme();
+
+  // phone-like layout even on web
+  const maxW = 430;
+  const contentWidth = Math.min(width, maxW);
+
+  const [tab, setTab] = useState<TabKey>("summary");
+
+  // Dummy values (replace later with real data from your store)
+  const total = 278;
+  const avg = 69;
+  const best = 152;
+
+  const week = useMemo(
+    () => [
+      { day: "الأربعاء", v: 50 },
+      { day: "الثلاثاء", v: 150 },
+      { day: "الإثنين", v: 30 },
+      { day: "الأحد", v: 60 },
+      { day: "السبت", v: 10 },
+      { day: "الجمعة", v: 5 },
+      { day: "الخميس", v: 5 },
+    ],
+    []
+  );
+
+  const dailyGoal = 200;
+  const todayDone = 120;
+  const goalPct = Math.max(0, Math.min(1, todayDone / dailyGoal));
+
+  const headerGradientColors = colors.headerGradient as [string, string, ...string[]];
+  const pageBackground = colors.background;
+  const sheetBackground = isDarkMode ? "#0D0F12" : "#F3F5F8";
+  const cardBackground = isDarkMode ? "#2B2B2B" : "#EEF1F5";
+  const tileBackground = isDarkMode ? "#252A31" : "#EEF1F5";
+  const primaryText = isDarkMode ? "#FFFFFF" : "#111418";
+  const secondaryText = isDarkMode ? "rgba(255,255,255,0.6)" : "rgba(17,20,24,0.55)";
+  const subtleText = isDarkMode ? "rgba(255,255,255,0.45)" : "rgba(17,20,24,0.45)";
+  const chartBackground = isDarkMode ? "#1F242C" : "#F6F8FB";
+  const chartGridColor = isDarkMode ? "rgba(255

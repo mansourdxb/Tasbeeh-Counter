@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,11 +11,13 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
-
 import { useApp } from "@/context/AppContext";
+import { useTheme } from "@/context/ThemeContext";
+import hadithList from "@/constants/hadith.json";
+import { typography } from "@/theme/typography";
 
 const AR_TITLE: Record<string, string> = {
   "Allahu Akbar": "تكبير",
@@ -26,7 +28,7 @@ const AR_TITLE: Record<string, string> = {
 };
 
 const AR_TEXT: Record<string, string> = {
-  "Allahu Akbar": "الله أكبر الله أكبر",
+  "Allahu Akbar": "الله أكبر",
   SubhanAllah: "سبحان الله",
   Alhamdulillah: "الحمد لله",
   "La ilaha illa Allah": "لا إله إلا الله",
@@ -41,56 +43,76 @@ function getArabicText(name: string) {
   return AR_TEXT[name] ?? "";
 }
 
+type HadithItem = { text: string; by?: string };
+
 export default function PresetsScreen() {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const navigation = useNavigation<any>();
   const { presets, setCurrentPreset } = useApp();
+  const { colors, isDarkMode } = useTheme();
   const { width } = useWindowDimensions();
 
-  // Keep your "mobile" feel on web by constraining content width
-  const maxW = 460;
-  const contentWidth = Math.min(width, maxW);
+  const isWeb = Platform.OS === "web";
+  const contentWidth = isWeb ? Math.min(width, 460) : width;
+  const headerGradientColors = colors.headerGradient as [string, string, ...string[]];
+
+  const pageBackground = colors.background;
+  const sheetBackground = isDarkMode ? "#1F242C" : "#F3F5F8";
+  const rowBackground = isDarkMode ? "#252A31" : "#EEF1F5";
+  const leftCircleBackground = isDarkMode ? "#323A45" : "#E6EAF0";
+  const primaryText = isDarkMode ? "#FFFFFF" : "#111418";
+  const secondaryText = isDarkMode ? "rgba(255,255,255,0.6)" : "rgba(17,20,24,0.45)";
+  const quoteCardBackground = isDarkMode ? "#C79B3B" : "#F1C56B";
 
   const data = useMemo(() => presets, [presets]);
+  const [quote, setQuote] = useState<HadithItem | null>(null);
+  const headerPadTop = useMemo(() => insets.top + 12, [insets.top]);
 
- const onPick = (id: string) => {
-  setCurrentPreset(id);
-  navigation.navigate("Counter"); // ✅ within the same stack
-};
+  // ✅ Pick a random hadith each time you VISIT this screen
+  useFocusEffect(
+    useCallback(() => {
+      if (!Array.isArray(hadithList) || hadithList.length === 0) {
+        setQuote(null);
+        return;
+      }
+      const random = hadithList[Math.floor(Math.random() * hadithList.length)];
+      setQuote(random);
+    }, [])
+  );
 
+  const onPick = (id: string) => {
+    setCurrentPreset(id);
+    navigation.navigate("Counter");
+  };
 
   const onAdd = () => {
-    // Change this route name to your actual Add Zikr screen route if different
-    // Example: navigation.navigate("AddZikr");
-    // If AddZikr is in the Presets stack, this is correct:
     navigation.navigate("AddZikr");
   };
 
   const renderItem = ({ item }: any) => {
-   const title = item.arabicName ?? getArabicTitle(item.name);
-const sub = item.text || getArabicText(item.name);
-
-
+    const title = item.arabicName ?? getArabicTitle(item.name);
+    const sub = item.text ?? getArabicText(item.name);
 
     return (
       <Pressable
         onPress={() => onPick(item.id)}
         style={({ pressed }) => [
           styles.row,
+          { backgroundColor: rowBackground },
           pressed ? { opacity: 0.85, transform: [{ scale: 0.995 }] } : null,
         ]}
       >
-        <View style={styles.leftCircle}>
-          <Text style={styles.leftCircleText}>{item.target}</Text>
+        <View style={[styles.leftCircle, { backgroundColor: leftCircleBackground }]}>
+          <Text style={[styles.leftCircleText, { color: primaryText }]}>{item.target}</Text>
         </View>
 
         <View style={styles.rowText}>
-          <Text style={styles.rowTitle} numberOfLines={1}>
+          <Text style={[styles.rowTitle, { color: primaryText }]} numberOfLines={1}>
             {title}
           </Text>
           {sub ? (
-            <Text style={styles.rowSub} numberOfLines={1}>
+            <Text style={[styles.rowSub, { color: secondaryText }]} numberOfLines={1}>
               {sub}
             </Text>
           ) : null}
@@ -100,55 +122,59 @@ const sub = item.text || getArabicText(item.name);
   };
 
   const ListHeader = () => (
-    <View style={[styles.sheet, { width: contentWidth }]}>
-      {/* Quote card */}
-      <View style={styles.quoteCard}>
+    <View style={[styles.sheet, { width: contentWidth, backgroundColor: sheetBackground }]}>
+      <View style={[styles.quoteCard, { backgroundColor: quoteCardBackground }]}>
         <Text style={styles.quoteMarks}>”</Text>
-        <Text style={styles.quoteText} numberOfLines={3}>
-          خير الإخوان من إذا استغنيت عنه لم يزدك في المودة، وإذا احتجت إليه لم
-          ينقصك منها.
-        </Text>
-        <Text style={styles.quoteBy} numberOfLines={1}>
-          علي بن أبي طالب
-        </Text>
+
+        {quote ? (
+          <>
+            <Text style={styles.quoteText} numberOfLines={3}>
+              {quote.text}
+            </Text>
+            {!!quote.by && (
+              <Text style={styles.quoteBy} numberOfLines={1}>
+                {quote.by}
+              </Text>
+            )}
+          </>
+        ) : (
+          <>
+            <Text style={styles.quoteText} numberOfLines={2}>
+              {`اذكروا الله كثيراً`}
+            </Text>
+            <Text style={styles.quoteBy} numberOfLines={1}>
+              {`—`}
+            </Text>
+          </>
+        )}
       </View>
     </View>
   );
 
   return (
-   <View style={styles.root}>
-
-      {/* Header gradient */}
+    <View style={[styles.root, { backgroundColor: pageBackground }]}>
       <LinearGradient
-        colors={["#7EC3E6", "#64B5E1"]}
-        style={[styles.header, { paddingTop: insets.top }]}
-
+        colors={headerGradientColors}
+        style={[styles.header, { paddingTop: headerPadTop }]}
       >
         <View style={[styles.headerRow, { width: contentWidth }]}>
-          <Pressable style={styles.headerBtn} onPress={onAdd}>
+          <Pressable style={styles.headerBtn} onPress={onAdd} hitSlop={12}>
             <Feather name="plus" size={26} color="white" />
           </Pressable>
 
-          <Text style={styles.headerTitle}>ذكر</Text>
+          <Text style={styles.headerTitle} pointerEvents="none">ذكر</Text>
         </View>
       </LinearGradient>
 
-      {/* List */}
       <FlatList
         style={{ width: contentWidth }}
-        
         data={data}
         keyExtractor={(item: any) => String(item.id)}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={ListHeader}
-        // ✅ Critical: prevent last row from hiding behind the bottom tab bar
-       contentContainerStyle={{ paddingBottom: tabBarHeight + 24 }}
-
-        scrollIndicatorInsets={{
-          bottom: tabBarHeight,
-        }}
-        
+        contentContainerStyle={{ paddingBottom: tabBarHeight + 24 }}
+        scrollIndicatorInsets={{ bottom: tabBarHeight }}
       />
     </View>
   );
@@ -158,7 +184,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     alignItems: "center",
-    backgroundColor: "#F3F5F8",
   },
   header: {
     width: "100%",
@@ -169,13 +194,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
+    position: "relative",
   },
   headerTitle: {
+    ...typography.screenTitle,
     color: "white",
-    fontSize: 34,
+    fontSize: 40,
     fontWeight: "900",
-    textAlign: "right",
+    textAlign: "center",
+    position: "absolute",
+    left: 0,
+    right: 0,
   },
   headerBtn: {
     width: 44,
@@ -183,22 +213,22 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 2,
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null),
   },
 
   sheet: {
-    backgroundColor: "#F3F5F8",
     paddingTop: 14,
   },
 
   quoteCard: {
-    backgroundColor: "#F1C56B",
     borderRadius: 18,
     padding: 18,
     marginHorizontal: 14,
     marginBottom: 14,
   },
   quoteMarks: {
+    ...typography.itemTitle,
     color: "rgba(255,255,255,0.9)",
     fontSize: 28,
     fontWeight: "900",
@@ -206,6 +236,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   quoteText: {
+    ...typography.itemTitle,
     color: "white",
     fontSize: 18,
     lineHeight: 26,
@@ -213,6 +244,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   quoteBy: {
+    ...typography.itemSubtitle,
     marginTop: 10,
     color: "rgba(255,255,255,0.9)",
     fontSize: 14,
@@ -223,7 +255,6 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#EEF1F5",
     borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 14,
@@ -234,30 +265,27 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#E6EAF0",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
   },
   leftCircleText: {
+    ...typography.numberText,
     fontSize: 16,
     fontWeight: "900",
-    color: "#111418",
   },
-  rowText: {
-    flex: 1,
-  },
+  rowText: { flex: 1 },
   rowTitle: {
+    ...typography.itemTitle,
     fontSize: 22,
     fontWeight: "900",
-    color: "#111418",
     textAlign: "right",
   },
   rowSub: {
+    ...typography.itemSubtitle,
     marginTop: 4,
     fontSize: 14,
     fontWeight: "700",
-    color: "rgba(17,20,24,0.45)",
     textAlign: "right",
   },
 });

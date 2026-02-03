@@ -1,0 +1,35 @@
+return (
+    <View style={styles.timeCell}>
+      <Text style={[styles.timeValue, { color: primaryText }]}>
+        {String(value).padStart(2, "0")}
+      </Text>
+      <Text style={[styles.timeLabel, { color: secondaryText }]}>{label}</Text>
+    </View>
+  );
+}
+
+type CalendarColors = {
+  cardOuterBackground: string;
+  cardInnerBackground: string;
+  cardTitleColor: string;
+  dividerColor: string;
+  primaryText: string;
+  secondaryText: string;
+};
+
+function CountdownCard({
+  title,
+  subtitle,
+  target,
+  colors,
+}: {
+  title: string;
+  subtitle: string;
+  target: Date;
+  colors: CalendarColors;
+}) {
+  const [cd, setCd] = useState<Countdown>(() => getCountdown(target));
+
+  useEffect(() => {
+    const t = setInterval(() => setCd(getCountdown(target)), 1000);
+    return () => clearInterval(t);

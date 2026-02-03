@@ -221,6 +221,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
+    position: "relative",
   },
 
   headerLeft: {
@@ -249,7 +250,10 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 34,
     fontWeight: "900",
-    textAlign: "right",
+    textAlign: "center",
+    position: "absolute",
+    left: 0,
+    right: 0,
   },
 
   card: {

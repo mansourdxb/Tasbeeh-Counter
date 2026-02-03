@@ -1,0 +1,12 @@
+/* Content */}
+      <View style={[styles.content, { width: contentWidth }]}>
+        {/* Location Card */}
+        <View style={[styles.locationCard, { backgroundColor: cardBg }]}>
+          <Text style={[styles.locationLabel, { color: secondaryTextColor }]}>موقعك الحالي</Text>
+          <Text style={[styles.locationText, { color: textColor }]}>{locationName}</Text>
+          {location && (
+            <Text style={[styles.coordinates, { color: secondaryTextColor }]}>
+              {location.latitude.toFixed(4)}°، {location.longitude.toFixed(4)}°
+            </Text>
+          )}
+        </Vie

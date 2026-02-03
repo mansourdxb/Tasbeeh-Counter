@@ -1,0 +1,15 @@
+/* Angle Indicator */}
+        <View style={[styles.angleCard, { backgroundColor: cardBg }]}>
+          <Text style={[styles.angleLabel, { color: secondaryTextColor }]}>زاوية الانحراف</Text>
+          <Text style={[styles.angleValue, { color: getAngleColor(angleDifference) }]}>
+            {getDirectionText(angleDifference)}
+          </Text>
+        </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+// Calculate Qibla direction from user's location
+function calculateQiblaDirection(

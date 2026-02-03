@@ -18,6 +18,8 @@ import * as Haptics from "expo-haptics";
 import { useNavigation } from "@react-navigation/native";
 
 import { useApp } from "@/context/AppContext";
+import { useTheme } from "@/context/ThemeContext";
+import { typography } from "@/theme/typography";
 
 const AR_TITLE: Record<string, string> = {
   "Allahu Akbar": "تكبير",
@@ -43,15 +45,15 @@ export default function CounterScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { width } = useWindowDimensions();
+  const { colors, isDarkMode } = useTheme();
 
- const {
-  currentPreset,
-  increment,
-  reset,
-  deletePreset,
-  setCurrentPreset,
-} = useApp();
-
+  const {
+    currentPreset,
+    increment,
+    reset,
+    deletePreset,
+    setCurrentPreset,
+  } = useApp();
 
   // Mobile-first container width (helps web look like a phone)
   const maxW = 430;
@@ -59,11 +61,7 @@ export default function CounterScreen() {
 
   const name = currentPreset?.name ?? "SubhanAllah";
   const title = AR_TITLE[name] ?? name;
-  const dhikrText =
-  currentPreset?.text ||
-  AR_TEXT[name] ||
-  "";
-
+  const dhikrText = currentPreset?.text || AR_TEXT[name] || "";
 
   const count = currentPreset?.count ?? 0;
   const target = currentPreset?.target ?? 33;
@@ -79,10 +77,9 @@ export default function CounterScreen() {
     return { size, stroke, r, c, dash };
   }, [pct]);
 
- const goToPresets = () => {
-  navigation.goBack();
-};
-
+  const goToPresets = () => {
+    navigation.goBack();
+  };
 
   const onClose = () => {
     goToPresets();
@@ -95,7 +92,7 @@ export default function CounterScreen() {
     } catch {}
   };
 
- const onTrash = () => {
+  const onTrash = () => {
     if (!currentPreset) return;
 
     const isBuiltIn = Boolean((currentPreset as any).isBuiltIn);
@@ -156,16 +153,23 @@ export default function CounterScreen() {
     increment();
   };
 
-  return (
-    <View style={styles.root}>
-      {/* Background */}
-      <View style={styles.pageBg} />
+  // Dynamic colors based on theme
+  const cardBackgroundColor = isDarkMode ? '#2B2B2B' : '#FFFFFF';
+  const textColor = isDarkMode ? '#FFFFFF' : '#111418';
+  const secondaryTextColor = isDarkMode ? 'rgba(255,255,255,0.65)' : 'rgba(17,20,24,0.55)';
+  const ringBackgroundColor = isDarkMode ? '#374151' : '#E7EDF4';
+  const headerGradientColors = colors.headerGradient as [string, string, ...string[]];
 
-      {/* Phone-width container (prevents “web wide” look) */}
+  return (
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      {/* Background */}
+      <View style={[styles.pageBg, { backgroundColor: colors.background }]} />
+
+      {/* Phone-width container (prevents "web wide" look) */}
       <View style={[styles.phone, { width: contentWidth }]}>
         {/* Header */}
         <LinearGradient
-          colors={["#7EC3E6", "#64B5E1"]}
+          colors={headerGradientColors}
           style={[styles.header, { paddingTop: insets.top + 10 }]}
         >
           <View style={styles.headerRow}>
@@ -196,16 +200,19 @@ export default function CounterScreen() {
               </Pressable>
             </View>
 
-            {/* Right title */}
+            {/* Center title */}
             <Text style={styles.headerTitle} numberOfLines={1}>
               {title}
             </Text>
+
+            {/* Right spacer to keep title centered */}
+            <View style={styles.headerRight} />
           </View>
         </LinearGradient>
 
-        {/* White card area */}
-        <View style={styles.card}>
-          <Text style={styles.dhikrText} numberOfLines={2}>
+        {/* White/Dark card area */}
+        <View style={[styles.card, { backgroundColor: cardBackgroundColor }]}>
+          <Text style={[styles.dhikrText, { color: textColor }]} numberOfLines={2}>
             {dhikrText || " "}
           </Text>
 
@@ -215,7 +222,7 @@ export default function CounterScreen() {
                 cx={ring.size / 2}
                 cy={ring.size / 2}
                 r={ring.r}
-                stroke="#E7EDF4"
+                stroke={ringBackgroundColor}
                 strokeWidth={ring.stroke}
                 fill="none"
               />
@@ -235,8 +242,8 @@ export default function CounterScreen() {
             </Svg>
 
             <View style={styles.centerText}>
-              <Text style={styles.big}>{count}</Text>
-              <Text style={styles.from}>من {target}</Text>
+              <Text style={[styles.big, { color: textColor }]}>{count}</Text>
+              <Text style={[styles.from, { color: secondaryTextColor }]}>من {target}</Text>
             </View>
           </View>
 
@@ -254,10 +261,10 @@ export default function CounterScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F3F5F8" },
+  root: { flex: 1 },
 
   // full-page background (helps on web)
-  pageBg: { ...StyleSheet.absoluteFillObject, backgroundColor: "#F3F5F8" },
+  pageBg: { ...StyleSheet.absoluteFillObject },
 
   // Center phone container on web; full width on mobile will still look fine
   phone: {
@@ -267,7 +274,7 @@ const styles = StyleSheet.create({
 
   header: {
     width: "100%",
-    paddingBottom: 14,
+    paddingBottom: 28,
   },
   headerRow: {
     flexDirection: "row",
@@ -279,6 +286,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
+    flex: 1,
+  },
+  headerRight: {
+    flex: 1,
   },
   hIconBtn: {
     width: 34,
@@ -288,27 +299,30 @@ const styles = StyleSheet.create({
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null),
   },
   headerTitle: {
+    ...typography.screenTitle,
     color: "#fff",
     fontSize: 26,
     fontWeight: "900",
-    textAlign: "right",
-    maxWidth: 220,
+    textAlign: "center",
+    flex: 1,
   },
 
-  card: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    paddingTop: 22,
-    paddingHorizontal: 18,
-    alignItems: "center",
-  },
+ card: {
+  flex: 1,
+  backgroundColor: "#fff",
+  borderTopLeftRadius: 22,
+  borderTopRightRadius: 22,
+  marginTop: -22, // ✅ NEW: overlaps the blue header to create the curve
+  paddingTop: 22,
+  paddingHorizontal: 18,
+  alignItems: "center",
+},
+
 
   dhikrText: {
+    ...typography.itemSubtitle,
     fontSize: 26,
     fontWeight: "800",
-    color: "#111418",
     textAlign: "center",
     marginBottom: 18,
     paddingHorizontal: 6,
@@ -325,16 +339,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   big: {
+    ...typography.numberText,
     fontSize: 56,
     fontWeight: "900",
-    color: "#111418",
     lineHeight: 62,
   },
   from: {
+    ...typography.numberText,
     marginTop: 4,
     fontSize: 18,
     fontWeight: "700",
-    color: "rgba(17,20,24,0.55)",
   },
 
   plusBtn: {
@@ -353,6 +367,7 @@ const styles = StyleSheet.create({
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null),
   },
   plus: {
+    ...typography.buttonText,
     fontSize: 50,
     fontWeight: "900",
     color: "#fff",

@@ -1,0 +1,25 @@
+icon="????"
+                  value={best}
+                  label="????????????"
+                  outerColor={cardOuterBackground}
+                  innerColor={cardInnerBackground}
+                  valueColor={primaryText}
+                  labelColor={subtleText}
+                />
+                <StatTile
+                  icon="????"
+                  value={avg}
+                  label="??????????????"
+                  outerColor={cardOuterBackground}
+                  innerColor={cardInnerBackground}
+                  valueColor={primaryText}
+                  labelColor={subtleText}
+                />
+                <StatTile
+                  icon="???"
+                  value={total}
+                  label="??????????????"
+                  outerColor={cardOuterBackground}
+                  innerColor={cardInnerBackground}
+                  valueColor={primaryText}
+      

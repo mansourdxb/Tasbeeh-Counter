@@ -1,0 +1,16 @@
+         />
+
+          <View style={{ height: 16 }} />
+
+          <CountdownCard
+            title="العشر الأواخر"
+            subtitle="العد التنازلي للعشر الأواخر"
+            target={lastTenTarget}
+            colors={calendarColors}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+

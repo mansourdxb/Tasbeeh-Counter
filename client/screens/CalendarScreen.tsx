@@ -5,9 +5,13 @@ import {
   StyleSheet,
   useWindowDimensions,
   Platform,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "@/context/ThemeContext";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { typography } from "@/theme/typography";
 
 type Countdown = {
   days: number;
@@ -33,23 +37,46 @@ function getCountdown(target: Date): Countdown {
   return { days, hours, minutes, seconds };
 }
 
-function TimeCell({ value, label }: { value: number; label: string }) {
+function TimeCell({
+  value,
+  label,
+  primaryText,
+  secondaryText,
+}: {
+  value: number;
+  label: string;
+  primaryText: string;
+  secondaryText: string;
+}) {
   return (
     <View style={styles.timeCell}>
-      <Text style={styles.timeValue}>{String(value).padStart(2, "0")}</Text>
-      <Text style={styles.timeLabel}>{label}</Text>
+      <Text style={[styles.timeValue, { color: primaryText }]}>
+        {String(value).padStart(2, "0")}
+      </Text>
+      <Text style={[styles.timeLabel, { color: secondaryText }]}>{label}</Text>
     </View>
   );
 }
+
+type CalendarColors = {
+  cardOuterBackground: string;
+  cardInnerBackground: string;
+  cardTitleColor: string;
+  dividerColor: string;
+  primaryText: string;
+  secondaryText: string;
+};
 
 function CountdownCard({
   title,
   subtitle,
   target,
+  colors,
 }: {
   title: string;
   subtitle: string;
   target: Date;
+  colors: CalendarColors;
 }) {
   const [cd, setCd] = useState<Countdown>(() => getCountdown(target));
 
@@ -63,25 +90,45 @@ function CountdownCard({
   ).padStart(2, "0")}`;
 
   return (
-    <View style={styles.cardOuter}>
-      <View style={styles.cardInner}>
+    <View style={[styles.cardOuter, { backgroundColor: colors.cardOuterBackground }]}>
+      <View style={[styles.cardInner, { backgroundColor: colors.cardInnerBackground }]}>
         <View style={styles.cardTopRow}>
           <Text style={styles.moonIcon}>🌙</Text>
-          <Text style={styles.cardTitle}>{title}</Text>
+          <Text style={[styles.cardTitle, { color: colors.cardTitleColor }]}>{title}</Text>
         </View>
 
-        <View style={styles.cardDivider} />
+        <View style={[styles.cardDivider, { backgroundColor: colors.dividerColor }]} />
 
         <View style={styles.timeRow}>
-          <TimeCell value={cd.seconds} label="ثانية" />
-          <TimeCell value={cd.minutes} label="دقيقة" />
-          <TimeCell value={cd.hours} label="ساعة" />
-          <TimeCell value={cd.days} label="يوم" />
+          <TimeCell
+            value={cd.seconds}
+            label="ثانية"
+            primaryText={colors.primaryText}
+            secondaryText={colors.secondaryText}
+          />
+          <TimeCell
+            value={cd.minutes}
+            label="دقيقة"
+            primaryText={colors.primaryText}
+            secondaryText={colors.secondaryText}
+          />
+          <TimeCell
+            value={cd.hours}
+            label="ساعة"
+            primaryText={colors.primaryText}
+            secondaryText={colors.secondaryText}
+          />
+          <TimeCell
+            value={cd.days}
+            label="يوم"
+            primaryText={colors.primaryText}
+            secondaryText={colors.secondaryText}
+          />
         </View>
 
-        <Text style={styles.dateText}>{dateStr}</Text>
+        <Text style={[styles.dateText, { color: colors.secondaryText }]}>{dateStr}</Text>
 
-        <Text style={styles.cardSubtitle}>{subtitle}</Text>
+        <Text style={[styles.cardSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
       </View>
     </View>
   );
@@ -89,11 +136,25 @@ function CountdownCard({
 
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const { width } = useWindowDimensions();
+  const { colors, isDarkMode } = useTheme();
 
   // Keep phone-like layout even on web
   const maxW = 430;
   const contentWidth = Math.min(width, maxW);
+  const headerGradientColors = colors.headerGradient as [string, string, ...string[]];
+
+  const pageBackground = colors.background;
+  const calendarColors: CalendarColors = {
+    cardOuterBackground: isDarkMode ? "#000000" : "#E7EDF4",
+    cardInnerBackground: isDarkMode ? "#2F2F30" : "#FFFFFF",
+    cardTitleColor: isDarkMode ? "#FFFFFF" : "#111418",
+    dividerColor: isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(17,20,24,0.08)",
+    primaryText: isDarkMode ? "#FFFFFF" : "#111418",
+    secondaryText: isDarkMode ? "rgba(255,255,255,0.65)" : "rgba(17,20,24,0.55)",
+  };
+  const sheetBackground = isDarkMode ? "#0D0F12" : "#E9EFF5";
 
   // ✅ Replace these with your real dates (or compute from Hijri later)
   // For now, using upcoming example dates:
@@ -110,9 +171,9 @@ export default function CalendarScreen() {
   }, [ramadanTarget]);
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: pageBackground }]}>
       <LinearGradient
-        colors={["#4C6F80", "#3D5E6D"]}
+        colors={headerGradientColors}
         style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={[styles.headerInner, { width: contentWidth }]}>
@@ -120,12 +181,17 @@ export default function CalendarScreen() {
         </View>
       </LinearGradient>
 
-      <View style={[styles.body, { width: contentWidth, paddingBottom: insets.bottom + 18 }]}>
-        <View style={styles.sheet}>
+      <ScrollView
+        style={{ width: contentWidth }}
+        contentContainerStyle={{ paddingBottom: tabBarHeight + 24 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.sheet, { backgroundColor: sheetBackground }]}>
           <CountdownCard
             title="رمضان"
             subtitle="العد التنازلي لرمضان"
             target={ramadanTarget}
+            colors={calendarColors}
           />
 
           <View style={{ height: 16 }} />
@@ -134,9 +200,10 @@ export default function CalendarScreen() {
             title="العشر الأواخر"
             subtitle="العد التنازلي للعشر الأواخر"
             target={lastTenTarget}
+            colors={calendarColors}
           />
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -144,7 +211,6 @@ export default function CalendarScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#0D0F12",
     alignItems: "center",
   },
 
@@ -155,13 +221,14 @@ const styles = StyleSheet.create({
   },
   headerInner: {
     paddingHorizontal: 16,
-    alignItems: "flex-end",
+    alignItems: "center",
   },
   headerTitle: {
+    ...typography.screenTitle,
     color: "#FFFFFF",
     fontSize: 40,
     fontWeight: "900",
-    textAlign: "right",
+    textAlign: "center",
   },
 
   body: {
@@ -171,7 +238,6 @@ const styles = StyleSheet.create({
 
   sheet: {
     flex: 1,
-    backgroundColor: "#0D0F12",
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     paddingTop: 18,
@@ -179,13 +245,11 @@ const styles = StyleSheet.create({
   },
 
   cardOuter: {
-    backgroundColor: "#000000",
     borderRadius: 28,
     padding: 10,
-    ...(Platform.OS === "web" ? ({ boxShadow: "0 12px 40px rgba(0,0,0,0.35)" } as any) : null),
+    ...(Platform.OS === "web" ? ({ boxShadow: "0 12px 30px rgba(0,0,0,0.12)" } as any) : null),
   },
   cardInner: {
-    backgroundColor: "#2F2F30",
     borderRadius: 22,
     padding: 18,
   },
@@ -195,11 +259,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   moonIcon: {
+    ...typography.numberText,
     fontSize: 22,
     opacity: 0.9,
   },
   cardTitle: {
-    color: "#FFFFFF",
+    ...typography.sectionTitle,
     fontSize: 26,
     fontWeight: "900",
     textAlign: "right",
@@ -207,7 +272,6 @@ const styles = StyleSheet.create({
   cardDivider: {
     marginTop: 12,
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.10)",
   },
 
   timeRow: {
@@ -220,28 +284,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   timeValue: {
-    color: "#FFFFFF",
+    ...typography.numberText,
     fontSize: 34,
     fontWeight: "900",
   },
   timeLabel: {
+    ...typography.itemSubtitle,
     marginTop: 6,
-    color: "rgba(255,255,255,0.65)",
     fontSize: 14,
     fontWeight: "800",
   },
 
   dateText: {
+    ...typography.itemSubtitle,
     marginTop: 16,
-    color: "rgba(255,255,255,0.55)",
     fontSize: 18,
     fontWeight: "800",
     textAlign: "left",
   },
 
   cardSubtitle: {
+    ...typography.itemSubtitle,
     marginTop: 10,
-    color: "rgba(255,255,255,0.65)",
     fontSize: 14,
     fontWeight: "700",
     textAlign: "right",

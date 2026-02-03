@@ -4,17 +4,21 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import QiblaScreen from "@/screens/QiblaScreen";
 
 import PresetsStackNavigator from "@/navigation/PresetsStackNavigator";
 import StatsStackNavigator from "@/navigation/StatsStackNavigator";
 import CalendarStackNavigator from "@/navigation/CalendarStackNavigator";
+import LibraryStackNavigator from "@/navigation/LibraryStackNavigator";
 import SettingsStackNavigator from "@/navigation/SettingsStackNavigator";
 
 export type MainTabParamList = {
+  LibraryTab: undefined;
   SettingsTab: undefined;
   CalendarTab: undefined;
   StatsTab: undefined;
   PresetsTab: undefined;
+  QiblaTab: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -87,24 +91,44 @@ tabBarStyle: {
           ) : null,
       }}
     >
-      {/* LEFTMOST (Settings) */}
+      {/* LEFTMOST (Library) */}
+      <Tab.Screen
+        name="LibraryTab"
+        component={LibraryStackNavigator}
+        options={{
+          title: "\u0627\u0644\u0645\u0643\u062A\u0628\u0629",
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="book" focused={focused} color={color} />
+          ),
+        }}
+      />
+
       <Tab.Screen
         name="SettingsTab"
         component={SettingsStackNavigator}
         options={{
-          title: "الإعدادات",
+          title: "\u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A",
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name="settings" focused={focused} color={color} />
           ),
         }}
       />
 
+       {/* Qibla Tab */}
+<Tab.Screen name="QiblaTab"
+  component={QiblaScreen}
+  options={{
+    title: "\u0627\u0644\u0642\u0628\u0644\u0629",
+    tabBarIcon: ({ color, size }) => <Feather name="navigation" color={color} size={size} />,
+  }}
+/>
+
       {/* 3rd from RIGHT (Calendar) */}
       <Tab.Screen
         name="CalendarTab"
         component={CalendarStackNavigator}
         options={{
-          title: "التقويم",
+          title: "\u0627\u0644\u062A\u0642\u0648\u064A\u0645",
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name="calendar" focused={focused} color={color} />
           ),
@@ -116,7 +140,7 @@ tabBarStyle: {
         name="StatsTab"
         component={StatsStackNavigator}
         options={{
-          title: "الإحصائيات",
+          title: "\u0627\u0644\u0625\u062D\u0635\u0627\u0626\u064A\u0627\u062A",
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name="bar-chart-2" focused={focused} color={color} />
           ),
@@ -128,7 +152,7 @@ tabBarStyle: {
         name="PresetsTab"
         component={PresetsStackNavigator}
         options={{
-          title: "ذكر",
+          title: "\u0630\u0643\u0631",
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name="grid" focused={focused} color={color} />
           ),

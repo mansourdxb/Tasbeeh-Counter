@@ -1,0 +1,12 @@
+<View style={[styles.body, { width: contentWidth, paddingBottom: insets.bottom + 18 }]}>
+        <View style={[styles.sheet, { backgroundColor: sheetBackground }]}>
+          <CountdownCard
+            title="رمضان"
+            subtitle="العد التنازلي لرمضان"
+            target={ramadanTarget}
+            colors={calendarColors}
+          />
+
+          <View style={{ height: 16 }} />
+
+          <C

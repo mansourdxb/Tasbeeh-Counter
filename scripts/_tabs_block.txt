@@ -1,0 +1,15 @@
+{/* LEFTMOST (Settings) */}
+      <Tab.Screen
+        name="SettingsTab"
+        component={SettingsStackNavigator}
+        options={{
+          title: "الإعدادات",
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="settings" focused={focused} color={color} />
+          ),
+        }}
+      />
+
+       {/* Qibla Tab */}
+<Tab.Screen name="QiblaTab"
+  component={QiblaScreen}

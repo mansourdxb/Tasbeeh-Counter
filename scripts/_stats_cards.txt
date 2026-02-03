@@ -1,0 +1,25 @@
+/* Last 7 days chart card */}
+              <Card>
+                <Text style={styles.cardTitle}>اخر 7 أيام</Text>
+
+                {/* Simple placeholder chart (replace with real chart later) */}
+                <View style={styles.chartArea}>
+                  <View style={styles.chartGrid} />
+                  <View style={styles.chartLine} />
+                </View>
+
+                <View style={styles.daysRow}>
+                  {week.map((d) => (
+                    <Text key={d.day} style={styles.dayLabel} numberOfLines={1}>
+                      {d.day}
+                    </Text>
+                  ))}
+                </View>
+              </Card>
+
+              {/* Daily goal */}
+              <Card style={{ marginTop: 14 }}>
+                <Text style={styles.cardTitle}>الهدف اليومي</Text>
+
+                <View style={styles.goalRow}>
+                  <Text style={styles.go

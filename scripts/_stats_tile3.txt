@@ -1,0 +1,7 @@
+le
+                  icon="???"
+                  value={total}
+                  label="??????????????"
+                  outerColor={cardOuterBackground}
+                  innerColor={cardInnerBackground}
+                  valueColor={primaryText}

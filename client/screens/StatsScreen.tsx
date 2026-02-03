@@ -4,11 +4,15 @@ import {
   Text,
   StyleSheet,
   Pressable,
+  ScrollView,
   useWindowDimensions,
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "@/context/ThemeContext";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { typography } from "@/theme/typography";
 
 type TabKey = "summary" | "calendar" | "achievements";
 
@@ -16,10 +20,17 @@ function SegmentedTabs({
   value,
   onChange,
   width,
+  colors,
 }: {
   value: TabKey;
   onChange: (k: TabKey) => void;
   width: number;
+  colors: {
+    wrapBg: string;
+    activeBg: string;
+    text: string;
+    textActive: string;
+  };
 }) {
   const items: { key: TabKey; label: string }[] = [
     { key: "summary", label: "الملخص" },
@@ -28,7 +39,7 @@ function SegmentedTabs({
   ];
 
   return (
-    <View style={[styles.segmentWrap, { width }]}>
+    <View style={[styles.segmentWrap, { width, backgroundColor: colors.wrapBg }]}>
       {items.map((it) => {
         const active = it.key === value;
         return (
@@ -37,11 +48,18 @@ function SegmentedTabs({
             onPress={() => onChange(it.key)}
             style={({ pressed }) => [
               styles.segmentBtn,
-              active ? styles.segmentBtnActive : null,
+              active ? { backgroundColor: colors.activeBg } : null,
               pressed ? { opacity: 0.92 } : null,
             ]}
           >
-            <Text style={[styles.segmentText, active ? styles.segmentTextActive : null]}>
+            <Text
+              style={[
+                styles.segmentText,
+                typography.sectionTitle,
+                { color: colors.text },
+                active ? { color: colors.textActive } : null,
+              ]}
+            >
               {it.label}
             </Text>
           </Pressable>
@@ -55,27 +73,51 @@ function StatTile({
   icon,
   value,
   label,
+  outerColor,
+  innerColor,
+  valueColor,
+  labelColor,
 }: {
-  icon: string; // emoji or simple symbol
+  icon: string;
   value: number;
   label: string;
+  outerColor: string;
+  innerColor: string;
+  valueColor: string;
+  labelColor: string;
 }) {
   return (
-    <View style={styles.statTile}>
-      <Text style={styles.statIcon}>{icon}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View style={[styles.statTileOuter, { backgroundColor: outerColor }]}>
+      <View style={[styles.statTileInner, { backgroundColor: innerColor }]}>
+        <Text style={styles.statIcon}>{icon}</Text>
+        <Text style={[styles.statValue, { color: valueColor }]}>{value}</Text>
+        <Text style={[styles.statLabel, { color: labelColor }]}>{label}</Text>
+      </View>
     </View>
   );
 }
 
-function Card({ children, style }: { children: React.ReactNode; style?: any }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+function Card({
+  children,
+  outerStyle,
+  innerStyle,
+}: {
+  children: React.ReactNode;
+  outerStyle?: any;
+  innerStyle?: any;
+}) {
+  return (
+    <View style={[styles.cardOuter, outerStyle]}>
+      <View style={[styles.cardInner, innerStyle]}>{children}</View>
+    </View>
+  );
 }
 
 export default function StatsScreen() {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const { width } = useWindowDimensions();
+  const { colors, isDarkMode } = useTheme();
 
   // phone-like layout even on web
   const maxW = 430;
@@ -92,7 +134,7 @@ export default function StatsScreen() {
     () => [
       { day: "الأربعاء", v: 50 },
       { day: "الثلاثاء", v: 150 },
-      { day: "الإثنين", v: 30 },
+      { day: "الاثنين", v: 30 },
       { day: "الأحد", v: 60 },
       { day: "السبت", v: 10 },
       { day: "الجمعة", v: 5 },
@@ -105,44 +147,103 @@ export default function StatsScreen() {
   const todayDone = 120;
   const goalPct = Math.max(0, Math.min(1, todayDone / dailyGoal));
 
+  const headerGradientColors = colors.headerGradient as [string, string, ...string[]];
+  const pageBackground = colors.background;
+  const sheetBackground = isDarkMode ? "#0D0F12" : "#F3F5F8";
+  const cardOuterBackground = isDarkMode ? "#000000" : "#E7EDF4";
+  const cardInnerBackground = isDarkMode ? "#2F2F30" : "#FFFFFF";
+  const primaryText = isDarkMode ? "#FFFFFF" : "#111418";
+  const secondaryText = isDarkMode ? "rgba(255,255,255,0.6)" : "rgba(17,20,24,0.55)";
+  const subtleText = isDarkMode ? "rgba(255,255,255,0.45)" : "rgba(17,20,24,0.45)";
+  const chartBackground = isDarkMode ? "#1F242C" : "#F6F8FB";
+  const chartGridColor = isDarkMode ? "rgba(255,255,255,0.18)" : "#AEB8C4";
+  const trackBackground = isDarkMode ? "rgba(255,255,255,0.12)" : "rgba(17,20,24,0.12)";
+  const dividerColor = isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(17,20,24,0.08)";
+  const segmentColors = {
+    wrapBg: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.10)",
+    activeBg: isDarkMode ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.18)",
+    text: isDarkMode ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.85)",
+    textActive: "#FFFFFF",
+  };
+
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: pageBackground }]}>
       <LinearGradient
-        colors={["#7EC3E6", "#64B5E1"]}
+        colors={headerGradientColors}
         style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={[styles.headerInner, { width: contentWidth }]}>
           <Text style={styles.headerTitle}>الإحصائيات</Text>
 
-          <SegmentedTabs value={tab} onChange={setTab} width={contentWidth - 28} />
+          <SegmentedTabs
+            value={tab}
+            onChange={setTab}
+            width={contentWidth - 28}
+            colors={segmentColors}
+          />
         </View>
       </LinearGradient>
 
-      <View style={[styles.body, { width: contentWidth, paddingBottom: insets.bottom + 18 }]}>
-        {/* Large white sheet */}
-        <View style={styles.sheet}>
+      <ScrollView
+        style={{ width: contentWidth }}
+        contentContainerStyle={{ paddingBottom: tabBarHeight + 24 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Large sheet */}
+        <View style={[styles.sheet, { backgroundColor: sheetBackground }]}>
           {tab === "summary" ? (
             <>
               {/* 3 tiles */}
               <View style={styles.tilesRow}>
-                <StatTile icon="🏆" value={best} label="الأفضل" />
-                <StatTile icon="📊" value={avg} label="المتوسط" />
-                <StatTile icon="∑" value={total} label="المجموع" />
+                <StatTile
+                  icon="🏆"
+                  value={best}
+                  label="الأفضل"
+                  outerColor={cardOuterBackground}
+                  innerColor={cardInnerBackground}
+                  valueColor={primaryText}
+                  labelColor={subtleText}
+                />
+                <StatTile
+                  icon="📊"
+                  value={avg}
+                  label="المتوسط"
+                  outerColor={cardOuterBackground}
+                  innerColor={cardInnerBackground}
+                  valueColor={primaryText}
+                  labelColor={subtleText}
+                />
+                <StatTile
+                  icon="∑"
+                  value={total}
+                  label="المجموع"
+                  outerColor={cardOuterBackground}
+                  innerColor={cardInnerBackground}
+                  valueColor={primaryText}
+                  labelColor={subtleText}
+                />
               </View>
 
               {/* Last 7 days chart card */}
-              <Card>
-                <Text style={styles.cardTitle}>اخر 7 أيام</Text>
+              <Card
+                outerStyle={{ backgroundColor: cardOuterBackground }}
+                innerStyle={{ backgroundColor: cardInnerBackground }}
+              >
+                <Text style={[styles.cardTitle, { color: primaryText }]}>آخر 7 أيام</Text>
 
-                {/* Simple placeholder chart (replace with real chart later) */}
-                <View style={styles.chartArea}>
-                  <View style={styles.chartGrid} />
+                {/* Placeholder chart */}
+                <View style={[styles.chartArea, { backgroundColor: chartBackground }]}>
+                  <View style={[styles.chartGrid, { borderColor: chartGridColor }]} />
                   <View style={styles.chartLine} />
                 </View>
 
                 <View style={styles.daysRow}>
                   {week.map((d) => (
-                    <Text key={d.day} style={styles.dayLabel} numberOfLines={1}>
+                    <Text
+                      key={d.day}
+                      style={[styles.dayLabel, { color: secondaryText }]}
+                      numberOfLines={1}
+                    >
                       {d.day}
                     </Text>
                   ))}
@@ -150,17 +251,20 @@ export default function StatsScreen() {
               </Card>
 
               {/* Daily goal */}
-              <Card style={{ marginTop: 14 }}>
-                <Text style={styles.cardTitle}>الهدف اليومي</Text>
+              <Card
+                outerStyle={{ backgroundColor: cardOuterBackground, marginTop: 14 }}
+                innerStyle={{ backgroundColor: cardInnerBackground }}
+              >
+                <Text style={[styles.cardTitle, { color: primaryText }]}>الهدف اليومي</Text>
 
                 <View style={styles.goalRow}>
-                  <Text style={styles.goalText}>
+                  <Text style={[styles.goalText, { color: primaryText }]}>
                     {todayDone} / {dailyGoal}
                   </Text>
-                  <Text style={styles.goalHint}>التقدم</Text>
+                  <Text style={[styles.goalHint, { color: subtleText }]}>التقدم</Text>
                 </View>
 
-                <View style={styles.progressTrack}>
+                <View style={[styles.progressTrack, { backgroundColor: trackBackground }]}>
                   <View style={[styles.progressFill, { width: `${goalPct * 100}%` }]} />
                 </View>
               </Card>
@@ -169,45 +273,53 @@ export default function StatsScreen() {
 
           {tab === "calendar" ? (
             <View style={styles.placeholder}>
-              <Text style={styles.placeholderTitle}>التقويم</Text>
-              <Text style={styles.placeholderSub}>سنضيف عرض الأيام/الأشهر هنا لاحقاً.</Text>
+              <Text style={[styles.placeholderTitle, { color: primaryText }]}>التقويم</Text>
+              <Text style={[styles.placeholderSub, { color: secondaryText }]}>
+                سنضيف عرض الأيام/الأشهر هنا لاحقاً.
+              </Text>
             </View>
           ) : null}
 
           {tab === "achievements" ? (
             <View style={{ paddingTop: 10 }}>
-              <Card>
+              <Card
+                outerStyle={{ backgroundColor: cardOuterBackground }}
+                innerStyle={{ backgroundColor: cardInnerBackground }}
+              >
                 <AchievementRow
                   title="منضبط يومياً"
                   desc="أكمل تسبيحك اليومي 30 يوماً دون انقطاع"
                   progressText="مكتمل %13"
                   pct={0.13}
+                  colors={{ primaryText, secondaryText, subtleText, trackBackground }}
                 />
-                <Divider />
+                <Divider color={dividerColor} />
                 <AchievementRow
                   title="مسبح مبتدئ"
                   desc="أكمل 1,000 تسبيحة"
                   progressText="مكتمل %27"
                   pct={0.27}
+                  colors={{ primaryText, secondaryText, subtleText, trackBackground }}
                 />
-                <Divider />
+                <Divider color={dividerColor} />
                 <AchievementRow
                   title="مسبح محترف"
                   desc="أكمل 10,000 تسبيحة"
                   progressText="مكتمل %2"
                   pct={0.02}
+                  colors={{ primaryText, secondaryText, subtleText, trackBackground }}
                 />
               </Card>
             </View>
           ) : null}
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
-function Divider() {
-  return <View style={styles.divider} />;
+function Divider({ color }: { color: string }) {
+  return <View style={[styles.divider, { backgroundColor: color }]} />;
 }
 
 function AchievementRow({
@@ -215,22 +327,31 @@ function AchievementRow({
   desc,
   progressText,
   pct,
+  colors,
 }: {
   title: string;
   desc: string;
   progressText: string;
   pct: number;
+  colors: {
+    primaryText: string;
+    secondaryText: string;
+    subtleText: string;
+    trackBackground: string;
+  };
 }) {
   const clamped = Math.max(0, Math.min(1, pct));
   return (
     <View style={styles.achRow}>
       <View style={styles.achTextWrap}>
-        <Text style={styles.achTitle}>{title}</Text>
-        <Text style={styles.achDesc}>{desc}</Text>
+        <Text style={[styles.achTitle, { color: colors.primaryText }]}>{title}</Text>
+        <Text style={[styles.achDesc, { color: colors.secondaryText }]}>{desc}</Text>
 
         <View style={styles.achFooter}>
-          <Text style={styles.achProgressText}>{progressText}</Text>
-          <View style={styles.achTrack}>
+          <Text style={[styles.achProgressText, { color: colors.subtleText }]}>
+            {progressText}
+          </Text>
+          <View style={[styles.achTrack, { backgroundColor: colors.trackBackground }]}>
             <View style={[styles.achFill, { width: `${clamped * 100}%` }]} />
           </View>
         </View>
@@ -253,13 +374,14 @@ const styles = StyleSheet.create({
   },
   headerInner: {
     paddingHorizontal: 14,
-    alignItems: "flex-end",
+    alignItems: "center",
   },
   headerTitle: {
+    ...typography.screenTitle,
     color: "#FFFFFF",
     fontSize: 40,
     fontWeight: "900",
-    textAlign: "right",
+    textAlign: "center",
     marginBottom: 10,
   },
 
@@ -281,12 +403,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.18)",
   },
   segmentText: {
+    ...typography.sectionTitle,
     color: "rgba(255,255,255,0.85)",
     fontSize: 16,
     fontWeight: "800",
-  },
-  segmentTextActive: {
-    color: "#FFFFFF",
   },
 
   body: {
@@ -308,11 +428,15 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 14,
   },
-  statTile: {
+  statTileOuter: {
     flex: 1,
-    backgroundColor: "#EEF1F5",
+    borderRadius: 24,
+    padding: 8,
+    ...(Platform.OS === "web" ? ({ boxShadow: "0 10px 24px rgba(0,0,0,0.10)" } as any) : null),
+  },
+  statTileInner: {
     borderRadius: 18,
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -322,23 +446,30 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   statValue: {
+    ...typography.numberText,
     fontSize: 34,
     fontWeight: "900",
     color: "#111418",
   },
   statLabel: {
+    ...typography.itemSubtitle,
     marginTop: 6,
     fontSize: 16,
     fontWeight: "800",
     color: "rgba(17,20,24,0.45)",
   },
 
-  card: {
-    backgroundColor: "#EEF1F5",
+  cardOuter: {
+    borderRadius: 28,
+    padding: 10,
+    ...(Platform.OS === "web" ? ({ boxShadow: "0 12px 30px rgba(0,0,0,0.12)" } as any) : null),
+  },
+  cardInner: {
     borderRadius: 22,
     padding: 16,
   },
   cardTitle: {
+    ...typography.sectionTitle,
     fontSize: 22,
     fontWeight: "900",
     color: "#111418",
@@ -366,7 +497,7 @@ const styles = StyleSheet.create({
     right: 18,
     height: 2,
     backgroundColor: "#F1C56B",
-    top: 80, // placeholder
+    top: 80,
     borderRadius: 1,
   },
   daysRow: {
@@ -375,6 +506,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   dayLabel: {
+    ...typography.itemSubtitle,
     flex: 1,
     textAlign: "center",
     fontSize: 12,
@@ -389,11 +521,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   goalText: {
+    ...typography.numberText,
     fontSize: 18,
     fontWeight: "900",
     color: "#111418",
   },
   goalHint: {
+    ...typography.itemSubtitle,
     fontSize: 14,
     fontWeight: "800",
     color: "rgba(17,20,24,0.45)",
@@ -415,12 +549,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   placeholderTitle: {
+    ...typography.sectionTitle,
     fontSize: 22,
     fontWeight: "900",
     color: "#111418",
     marginBottom: 6,
   },
   placeholderSub: {
+    ...typography.itemSubtitle,
     fontSize: 14,
     fontWeight: "700",
     color: "rgba(17,20,24,0.5)",
@@ -441,12 +577,14 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   achTitle: {
+    ...typography.itemTitle,
     fontSize: 18,
     fontWeight: "900",
     color: "#111418",
     textAlign: "right",
   },
   achDesc: {
+    ...typography.itemSubtitle,
     marginTop: 6,
     fontSize: 13,
     fontWeight: "700",
@@ -459,6 +597,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   achProgressText: {
+    ...typography.itemSubtitle,
     fontSize: 12,
     fontWeight: "800",
     color: "rgba(17,20,24,0.45)",

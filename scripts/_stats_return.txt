@@ -1,0 +1,22 @@
+return (
+    <View style={styles.root}>
+      <LinearGradient
+        colors={["#7EC3E6", "#64B5E1"]}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
+      >
+        <View style={[styles.headerInner, { width: contentWidth }]}>
+          <Text style={styles.headerTitle}>الإحصائيات</Text>
+
+          <SegmentedTabs value={tab} onChange={setTab} width={contentWidth - 28} />
+        </View>
+      </LinearGradient>
+
+      <View style={[styles.body, { width: contentWidth, paddingBottom: insets.bottom + 18 }]}>
+        {/* Large white sheet */}
+        <View style={styles.sheet}>
+          {tab === "summary" ? (
+            <>
+              {/* 3 tiles */}
+              <View style={styles.tilesRow}>
+                <StatTile icon="🏆" value={best} label="الأفضل" />
+               

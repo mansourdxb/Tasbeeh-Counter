@@ -1,0 +1,6 @@
+icon="\u{1F3C6}"
+                  value={best}
+                  label="الأفضل"
+                  outerColor={cardOuterBackground}
+                  innerColor={cardInnerBackground}
+                 

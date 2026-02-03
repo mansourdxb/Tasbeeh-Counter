@@ -1,0 +1,6 @@
+<View style={styles.cardTopRow}>
+          <Text style={styles.moonIcon}>🌙</Text>
+          <Text style={[styles.cardTitle, { color: colors.cardTitleColor }]}>{title}</Text>
+        </View>
+
+        <View style={[styles.

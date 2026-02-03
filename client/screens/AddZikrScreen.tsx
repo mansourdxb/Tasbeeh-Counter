@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as any) : null),
   },
-  headerTitle: { color: "#fff", fontSize: 26, fontWeight: "900" },
+  headerTitle: { color: "#fff", fontSize: 26, fontWeight: "900", textAlign: "center" },
 
   // ✅ centers the phone-like card on web
   centerWrap: {
