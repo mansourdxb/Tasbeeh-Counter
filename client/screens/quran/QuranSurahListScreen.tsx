@@ -1,179 +1,340 @@
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useMemo, useState } from "react";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@/context/ThemeContext";
-import { typography } from "@/theme/typography";
-import { quranFiles } from "@/lib/quran/quranFiles";
-import { StackActions, useNavigation } from "@react-navigation/native";
-import { getPageForAyah } from "@/src/lib/quran/mushaf";
+import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import type { CompositeNavigationProp } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-function getMeta(data: any) {
-  const meta = data?.surah ?? data?.chapter ?? data?.meta ?? data?.metadata ?? {};
-  const number = meta?.number ?? data?.number ?? meta?.id;
-  const nameAr =
-    meta?.name_ar ??
-    meta?.arabic_name ??
-    meta?.arabic ??
-    meta?.name?.arabic ??
-    meta?.name_arabic ??
-    "";
-  const nameEn =
-    meta?.name_en ??
-    meta?.english_name ??
-    meta?.english ??
-    meta?.name?.english ??
-    meta?.name_english ??
-    "";
-  return { number, nameAr, nameEn };
-}
+import { SURAH_META } from "@/constants/quran/surahMeta";
+import { getPageForAyah, arabicIndic } from "@/src/lib/quran/mushaf";
+import { buildQuranSearchIndexOnce, searchQuran, type SearchHit } from "@/src/lib/quran/searchQuran";
+import { quranTheme } from "@/ui/quran/theme";
+import QuranSearchBar from "@/ui/quran/QuranSearchBar";
+import ContinueReadingCard from "@/ui/quran/ContinueReadingCard";
+import QuranSegmentTabs from "@/ui/quran/QuranSegmentTabs";
+import SurahRow from "@/ui/quran/SurahRow";
+import QuranSearchResults from "@/screens/quran/QuranSearchResults";
+import type { LibraryStackParamList } from "@/navigation/LibraryStackNavigator";
+import type { RootStackParamList } from "@/navigation/RootStackNavigator";
 
-export default function QuranSurahListScreen() {
-  const navigation = useNavigation<any>();
-  const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
+type TabKey = "surah" | "juz" | "favorites";
+type LastRead = {
+  surahNumber: number;
+  ayahNumber: number;
+  page?: number;
+  updatedAt?: string;
+};
 
-  const openSurah = (sura: number, aya = 1) => {
-    const page = getPageForAyah(sura, aya);
-    console.log("[QuranList] MANUAL open", { sura, aya, page });
-    navigation.dispatch(
-      StackActions.push("QuranReader", {
-        sura,
-        aya,
-        page,
-        source: "index",
-        navToken: Date.now(),
-      })
-    );
+  const openSearchHit = (hit: SearchHit) => {
+    navigation.navigate("QuranReader", {
+      sura: hit.sura,
+      aya: hit.aya,
+      page: hit.page,
+      source: "search",
+      navToken: Date.now(),
+    });
   };
 
-  const items = useMemo(() => {
-    return quranFiles.map((f) => {
-      const meta = getMeta(f.data);
-      const ayahs =
-        f.data?.ayahs ??
-        f.data?.verses ??
-        f.data?.aya ??
-        f.data?.items ??
-        f.data?.data ??
-        [];
-      const ayahCount = Array.isArray(ayahs) ? ayahs.length : 0;
-      return {
-        number: f.number,
-        fileName: f.fileName,
-        nameAr: meta.nameAr || `???? ??? ${f.number}`,
-        nameEn: meta.nameEn || "",
-        ayahCount,
-      };
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setResults([]);
+      setResultLimit(50);
+      setLoadingSearch(false);
+      return;
+    }
+    setLoadingSearch(true);
+    const t = setTimeout(() => {
+      searchQuran(q, resultLimit)
+        .then((items) => setResults(items))
+        .finally(() => setLoadingSearch(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [query, resultLimit]);
+
+  const showResults = query.trim().length >= 2;
+  const canShowMore = showResults && results.length >= resultLimit && resultLimit < 200;
+type FavoriteItem = {
+  surahNumber: number;
+  ayahNumber: number;
+  createdAt?: string;
+};
+
+const LAST_READ_KEY = "quran:lastRead";
+const FAVORITES_KEY = "quran:favorites";
+const TOTAL_PAGES = 604;
+const mushafJuz: { index: number; sura: number; aya: number }[] = require("../../data/Quran/mushaf-juz.json");
+
+export default function QuranSurahListScreen() {
+  const navigation = useNavigation<
+    CompositeNavigationProp<
+      NativeStackNavigationProp<LibraryStackParamList>,
+      NativeStackNavigationProp<RootStackParamList>
+    >
+  >();
+  const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState<TabKey>("surah");
+  const [lastRead, setLastRead] = useState<LastRead | null>(null);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchHit[]>([]);
+  const [resultLimit, setResultLimit] = useState(50);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+
+  useEffect(() => {
+    console.log("QURAN TAB ENTRY:", "QuranSurahListScreen");
+  }, []);
+
+  useEffect(() => {
+    void buildQuranSearchIndexOnce();
+  }, []);
+
+  useEffect(() => {
+    setResultLimit(50);
+  }, [query]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(LAST_READ_KEY);
+        const favRaw = await AsyncStorage.getItem(FAVORITES_KEY);
+        if (!active) return;
+        if (raw) setLastRead(JSON.parse(raw) as LastRead);
+        if (favRaw) setFavorites(JSON.parse(favRaw) as FavoriteItem[]);
+      } catch {
+        // ignore storage errors
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+const openSurah = (sura: number, aya = 1, page?: number) => {
+  const pageNo = page ?? getPageForAyah(sura, aya);
+  
+  console.log("🔵 OPENING SURAH:", sura, "PAGE:", pageNo);
+  
+  navigation.navigate("QuranReader", {
+    sura,
+    aya,
+    page: pageNo,
+    source: "manual",
+    navToken: Date.now(),
+  });
+};
+
+  const lastReadMeta = useMemo(() => {
+    if (!lastRead) return null;
+    return SURAH_META.find((s) => s.number === lastRead.surahNumber) ?? null;
+  }, [lastRead]);
+
+  const progress = useMemo(() => {
+    if (!lastRead?.page) return 0;
+    return Math.min(1, Math.max(0, lastRead.page / TOTAL_PAGES));
+  }, [lastRead]);
+
+  const juzItems = useMemo(() => {
+    const map = new Map<number, { sura: number; aya: number }>();
+    mushafJuz.forEach((j) => {
+      if (!map.has(j.index)) map.set(j.index, { sura: j.sura, aya: j.aya });
+    });
+    return Array.from({ length: 30 }, (_, i) => {
+      const idx = i + 1;
+      const entry = map.get(idx) ?? { sura: 1, aya: 1 };
+      return { index: idx, ...entry };
     });
   }, []);
 
-  return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={colors.headerGradient as [string, string, ...string[]]}
-        style={[styles.header, { paddingTop: insets.top + 12 }]}
-      >
-        <View style={styles.headerInner}>
-          <Text style={styles.headerTitle}>??????</Text>
-        </View>
-      </LinearGradient>
-
-      <FlatList
-        data={items}
-        keyExtractor={(it) => String(it.number)}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => openSurah(item.number, 1)}
-            style={({ pressed }) => [styles.row, pressed ? { opacity: 0.9 } : null]}
-          >
-            <View style={styles.rowText}>
-              <Text style={styles.ar} numberOfLines={1}>
-                {item.nameAr}
-              </Text>
-              <Text style={styles.meta} numberOfLines={1}>
-                {`??? ?????? ${item.ayahCount}`}
-              </Text>
-            </View>
-            <Pressable
-              onPress={() => openSurah(item.number, 1)}
-              style={styles.badge}
-            >
-              <Text style={styles.badgeText}>{item.number}</Text>
-            </Pressable>
-          </Pressable>
-        )}
+  const renderSurah = ({ item }: { item: (typeof SURAH_META)[number] }) => {
+    const typeLabel = item.revelationType === "meccan" ? "مكية" : "مدنية";
+    return (
+      <SurahRow
+        number={item.number}
+        name={item.name_ar}
+        typeLabel={typeLabel}
+        onPress={() => openSurah(item.number, 1)}
       />
-    </View>
+    );
+  };
+
+  const renderJuz = ({ item }: { item: { index: number; sura: number; aya: number } }) => (
+    <Pressable onPress={() => openSurah(item.sura, item.aya)}>
+      <View style={styles.juzRow}>
+        <Text style={styles.juzTitle}>{`الجزء ${arabicIndic(item.index)}`}</Text>
+        <Text style={styles.juzMeta}>{`سورة ${arabicIndic(item.sura)} • آية ${arabicIndic(
+          item.aya
+        )}`}</Text>
+      </View>
+    </Pressable>
+  );
+
+  const renderFavorite = ({ item }: { item: FavoriteItem }) => {
+    const meta = SURAH_META.find((s) => s.number === item.surahNumber);
+    return (
+      <Pressable onPress={() => openSurah(item.surahNumber, item.ayahNumber)}>
+        <View style={styles.favoriteRow}>
+          <Text style={styles.favoriteTitle}>{meta?.name_ar ?? "سورة"}</Text>
+          <Text style={styles.favoriteMeta}>{`آية ${arabicIndic(item.ayahNumber)}`}</Text>
+        </View>
+      </Pressable>
+    );
+  };
+
+  const lastReadTitle = "استمرار القراءة";
+  const lastReadSubtitle = lastRead
+    ? `سورة ${lastReadMeta?.name_ar ?? ""} آية ${arabicIndic(lastRead.ayahNumber)}`
+    : "ابدأ القراءة الآن";
+
+  return (
+    <LinearGradient colors={quranTheme.colors.bgGradient} style={styles.gradient}>
+      <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
+        <QuranSearchBar value={query} onChangeText={setQuery} />
+
+        {showResults ? (
+          <View style={styles.searchResults}>
+            {loadingSearch ? (
+              <Text style={styles.searchLoading}>جارٍ البحث...</Text>
+            ) : (
+              <QuranSearchResults
+                results={results}
+                query={query}
+                onSelect={openSearchHit}
+                canShowMore={canShowMore}
+                onShowMore={() => setResultLimit(200)}
+              />
+            )}
+          </View>
+        ) : null}
+
+        <Pressable
+          onPress={() => {
+            if (!lastRead) return;
+            openSurah(lastRead.surahNumber, lastRead.ayahNumber, lastRead.page);
+          }}
+        >
+          <ContinueReadingCard surahName={lastReadTitle} ayahText={lastReadSubtitle} progress={progress} />
+        </Pressable>
+
+        <QuranSegmentTabs value={activeTab} onChange={setActiveTab} />
+
+        <View style={styles.content}>
+          {activeTab === "surah" ? (
+            <FlatList
+              data={SURAH_META}
+              keyExtractor={(item) => String(item.number)}
+              renderItem={renderSurah}
+              contentContainerStyle={styles.list}
+              showsVerticalScrollIndicator={false}
+            />
+          ) : null}
+
+          {activeTab === "juz" ? (
+            <FlatList
+              data={juzItems}
+              keyExtractor={(item) => String(item.index)}
+              renderItem={renderJuz}
+              contentContainerStyle={styles.list}
+              showsVerticalScrollIndicator={false}
+            />
+          ) : null}
+
+          {activeTab === "favorites" ? (
+            favorites.length ? (
+              <FlatList
+                data={favorites}
+                keyExtractor={(item) => `${item.surahNumber}-${item.ayahNumber}`}
+                renderItem={renderFavorite}
+                contentContainerStyle={styles.list}
+                showsVerticalScrollIndicator={false}
+              />
+            ) : (
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>لا يوجد مفضلات حالياً</Text>
+              </View>
+            )
+          ) : null}
+        </View>
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F3EEE8" },
-  header: {
+  gradient: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: quranTheme.spacing.lg,
+    gap: quranTheme.spacing.md,
+  },
+  content: {
+    flex: 1,
+  },
+  list: {
+    gap: quranTheme.spacing.md,
+    paddingVertical: quranTheme.spacing.sm,
+    paddingBottom: 30,
+  },
+  searchResults: {
     width: "100%",
-    paddingBottom: 16,
-    alignItems: "center",
   },
-  headerInner: {
-    paddingHorizontal: 16,
-    alignItems: "center",
+  searchLoading: {
+    color: quranTheme.colors.textOnDark,
+    fontFamily: "Cairo",
+    textAlign: "right",
+    paddingVertical: 8,
   },
-  headerTitle: {
-    ...typography.screenTitle,
-    color: "#FFFFFF",
-    fontSize: 32,
-    textAlign: "center",
-  },
-  list: { padding: 16, paddingBottom: 24 },
-  resumeRow: {
-    backgroundColor: "#1E8B5A",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+  juzRow: {
+    backgroundColor: quranTheme.colors.row,
     borderRadius: 18,
-    alignItems: "center",
-    marginBottom: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    alignItems: "flex-end",
+    gap: 6,
   },
-  resumeText: {
-    ...typography.buttonText,
-    color: "#FFFFFF",
-    fontSize: 14,
+  juzTitle: {
+    fontFamily: "CairoBold",
+    fontSize: 16,
+    color: quranTheme.colors.textOnDark,
   },
-  row: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.08)",
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 12,
-  },
-  rowText: { flex: 1, alignItems: "flex-end" },
-  ar: {
-    ...typography.itemTitle,
-    fontSize: 20,
-    textAlign: "right",
-    writingDirection: "rtl",
-  },
-  meta: {
-    ...typography.itemSubtitle,
+  juzMeta: {
+    fontFamily: "Cairo",
     fontSize: 13,
-    opacity: 0.7,
-    marginTop: 4,
-    textAlign: "right",
-    writingDirection: "rtl",
+    color: quranTheme.colors.textOnDark,
+    opacity: 0.8,
   },
-  badge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#1E8B5A",
+  favoriteRow: {
+    backgroundColor: quranTheme.colors.row,
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    alignItems: "flex-end",
+  },
+  favoriteTitle: {
+    fontFamily: "CairoBold",
+    fontSize: 16,
+    color: quranTheme.colors.textOnDark,
+  },
+  favoriteMeta: {
+    fontFamily: "Cairo",
+    fontSize: 13,
+    color: quranTheme.colors.textOnDark,
+    opacity: 0.8,
+    marginTop: 4,
+  },
+  empty: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeText: {
-    ...typography.numberText,
-    color: "#FFFFFF",
+  emptyText: {
+    fontFamily: "Cairo",
     fontSize: 14,
+    color: quranTheme.colors.textOnDark,
   },
 });
